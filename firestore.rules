@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// ==========================================================
+// Maison Lumière — regole di sicurezza Firestore
+// ----------------------------------------------------------
+// - Chiunque può LEGGERE i prodotti (servono al sito pubblico).
+// - Solo il proprietario può CREARE, MODIFICARE o ELIMINARE.
+//
+// Sostituisci INSERISCI_UID_PROPRIETARIO con l'UID dell'utente
+// creato in Firebase → Authentication → Utenti (colonna "UID utente").
+// ==========================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner() {
+      return request.auth != null
+        && request.auth.uid == "INSERISCI_UID_PROPRIETARIO";
+    }
+
+    function isValidProduct() {
+      let p = request.resource.data;
+      return p.name is string && p.name.size() > 0 && p.name.size() <= 120
+        && (p.price is int || p.price is float) && p.price >= 0
+        && p.category in ["abiti", "capispalla", "camicie", "accessori"]
+        && p.image is string && p.image.matches("^https?://.+")
+        && p.available is bool;
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update: if isOwner() && isValidProduct();
+      allow delete: if isOwner();
+    }
+
+    // Tutto il resto è chiuso
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Area riservata — Maison Lumière</title>
+  <script>
+    // "/admin" → "/admin/" così i percorsi relativi (css, js) funzionano sempre
+    if (/\/admin$/.test(location.pathname)) location.replace(location.pathname + "/" + location.search + location.hash);
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- ============ CARICAMENTO ============ -->
+  <div class="view view--loading" id="viewLoading">
+    <p class="brand">Maison <em>Lumière</em></p>
+    <span class="spinner" aria-label="Caricamento"></span>
+  </div>
+
+  <!-- ============ FIREBASE NON CONFIGURATO ============ -->
+  <div class="view view--center" id="viewSetup" hidden>
+    <div class="panel-card">
+      <p class="brand">Maison <em>Lumière</em></p>
+      <p class="eyebrow">Configurazione richiesta</p>
+      <h1 class="title">Collega Firebase</h1>
+      <p class="muted">Il pannello non è ancora collegato al database. Apri il file <code>js/firebase-config.js</code> e incolla le chiavi del tuo progetto Firebase.</p>
+      <p class="muted">Trovi tutti i passaggi nel file <code>GUIDA-FIREBASE.md</code>, nella cartella del sito.</p>
+      <a href="../" class="btn btn--ghost">Torna al sito</a>
+    </div>
+  </div>
+
+  <!-- ============ LOGIN ============ -->
+  <div class="view view--login" id="viewLogin" hidden>
+    <div class="login__visual" aria-hidden="true">
+      <div class="login__quote">
+        <p class="brand brand--light">Maison <em>Lumière</em></p>
+        <p>Dove la luce incontra l'eleganza senza tempo.</p>
+      </div>
+    </div>
+    <div class="login__side">
+      <form class="login__form" id="loginForm" novalidate>
+        <p class="eyebrow">Area riservata</p>
+        <h1 class="title">Accedi al pannello</h1>
+        <p class="muted">Gestisci la collezione della boutique.</p>
+
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <div class="field__password">
+            <input type="password" id="loginPassword" autocomplete="current-password" required>
+            <button type="button" class="link-btn" id="togglePassword" aria-label="Mostra password">Mostra</button>
+          </div>
+        </div>
+
+        <p class="form-msg" id="loginMsg" role="alert"></p>
+
+        <button type="submit" class="btn btn--dark btn--block" id="loginSubmit">Accedi</button>
+        <div class="login__links">
+          <button type="button" class="link-btn" id="forgotPassword">Password dimenticata?</button>
+          <a href="../" class="link-btn">← Torna al sito</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="view view--app" id="viewApp" hidden>
+    <header class="topbar">
+      <div class="topbar__inner">
+        <p class="brand brand--light">Maison <em>Lumière</em> <span class="topbar__badge">Admin</span></p>
+        <div class="topbar__right">
+          <span class="topbar__user" id="userEmail"></span>
+          <a href="../" target="_blank" rel="noopener" class="topbar__link">Vedi sito</a>
+          <button class="topbar__link" id="logoutBtn">Esci</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="dash">
+      <div class="dash__head">
+        <div>
+          <p class="eyebrow">Catalogo</p>
+          <h1 class="title">I tuoi <em>prodotti</em></h1>
+        </div>
+        <button class="btn btn--gold" id="newProductBtn">+ Nuovo prodotto</button>
+      </div>
+
+      <section class="stats" aria-label="Riepilogo">
+        <div class="stat"><span class="stat__label">Prodotti</span><span class="stat__value" id="statTotal">–</span></div>
+        <div class="stat"><span class="stat__label">Disponibili</span><span class="stat__value" id="statAvailable">–</span></div>
+        <div class="stat"><span class="stat__label">Esauriti</span><span class="stat__value" id="statOut">–</span></div>
+        <div class="stat"><span class="stat__label">Valore catalogo</span><span class="stat__value" id="statValue">–</span></div>
+      </section>
+
+      <div class="toolbar">
+        <label class="sr-only" for="searchInput">Cerca</label>
+        <input type="search" id="searchInput" class="toolbar__search" placeholder="Cerca per nome…">
+        <label class="sr-only" for="categoryFilter">Categoria</label>
+        <select id="categoryFilter" class="toolbar__select">
+          <option value="">Tutte le categorie</option>
+          <option value="abiti">Abiti</option>
+          <option value="capispalla">Capispalla</option>
+          <option value="camicie">Camicie &amp; Maglie</option>
+          <option value="accessori">Accessori</option>
+        </select>
+        <label class="sr-only" for="availabilityFilter">Disponibilità</label>
+        <select id="availabilityFilter" class="toolbar__select">
+          <option value="">Tutte</option>
+          <option value="yes">Disponibili</option>
+          <option value="no">Esauriti</option>
+        </select>
+      </div>
+
+      <div class="table" role="table" aria-label="Elenco prodotti">
+        <div class="table__head" role="row">
+          <span role="columnheader">Prodotto</span>
+          <span role="columnheader">Categoria</span>
+          <span role="columnheader">Prezzo</span>
+          <span role="columnheader">Disponibile</span>
+          <span role="columnheader" class="sr-only">Azioni</span>
+        </div>
+        <div id="productRows" role="rowgroup"></div>
+      </div>
+
+      <div class="empty" id="emptyState" hidden>
+        <p class="empty__title">Nessun prodotto nel database</p>
+        <p class="muted">Aggiungi il primo capo oppure importa i 12 prodotti di esempio già presenti sul sito.</p>
+        <div class="empty__actions">
+          <button class="btn btn--dark" id="seedBtn">Importa prodotti di esempio</button>
+          <button class="btn btn--ghost" id="emptyNewBtn">Nuovo prodotto</button>
+        </div>
+      </div>
+      <p class="no-results muted" id="noResults" hidden>Nessun prodotto corrisponde alla ricerca.</p>
+    </main>
+  </div>
+
+  <!-- ============ FORM PRODOTTO ============ -->
+  <div class="drawer" id="formDrawer" role="dialog" aria-modal="true" aria-labelledby="formTitle" hidden>
+    <div class="drawer__backdrop" data-close-form></div>
+    <aside class="drawer__panel">
+      <div class="drawer__head">
+        <div>
+          <p class="eyebrow" id="formEyebrow">Nuovo capo</p>
+          <h2 class="drawer__title" id="formTitle">Aggiungi prodotto</h2>
+        </div>
+        <button class="drawer__close" data-close-form aria-label="Chiudi">&times;</button>
+      </div>
+
+      <form class="drawer__body product-form" id="productForm" novalidate>
+        <div class="image-preview" id="imagePreview">
+          <img id="imagePreviewImg" alt="">
+          <span id="imagePreviewText">Anteprima immagine</span>
+        </div>
+
+        <div class="field">
+          <label for="fImage">Immagine (URL) *</label>
+          <input type="url" id="fImage" name="image" placeholder="https://…" required>
+          <p class="field__hint">Incolla l'indirizzo di un'immagine online (es. da Unsplash, Google Drive pubblico, il tuo hosting).</p>
+        </div>
+
+        <div class="field">
+          <label for="fName">Nome *</label>
+          <input type="text" id="fName" name="name" maxlength="120" required>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="fPrice">Prezzo (€) *</label>
+            <input type="number" id="fPrice" name="price" min="0" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="fCategory">Categoria *</label>
+            <select id="fCategory" name="category" required>
+              <option value="abiti">Abiti</option>
+              <option value="capispalla">Capispalla</option>
+              <option value="camicie">Camicie &amp; Maglie</option>
+              <option value="accessori">Accessori</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field field--switch">
+          <label class="switch">
+            <input type="checkbox" id="fAvailable" name="available" checked>
+            <span class="switch__track" aria-hidden="true"></span>
+            <span class="switch__label">Disponibile per l'acquisto</span>
+          </label>
+          <p class="field__hint">Se disattivato, il capo resta visibile sul sito con l'etichetta "Esaurito".</p>
+        </div>
+
+        <details class="more">
+          <summary>Dettagli aggiuntivi</summary>
+          <div class="field-row">
+            <div class="field">
+              <label for="fTag">Etichetta</label>
+              <input type="text" id="fTag" name="tag" maxlength="30" placeholder="es. Novità">
+            </div>
+            <div class="field">
+              <label for="fLabel">Nome categoria mostrato</label>
+              <input type="text" id="fLabel" name="label" maxlength="40" placeholder="es. Gioielli">
+            </div>
+          </div>
+          <div class="field">
+            <label for="fDescription">Descrizione</label>
+            <textarea id="fDescription" name="description" rows="4" maxlength="1000"></textarea>
+          </div>
+          <div class="field">
+            <label for="fMaterial">Materiali</label>
+            <input type="text" id="fMaterial" name="material" maxlength="200" placeholder="es. 100% seta · Made in Italy">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fSizes">Taglie</label>
+              <input type="text" id="fSizes" name="sizes" placeholder="XS, S, M, L">
+            </div>
+            <div class="field">
+              <label for="fSoldOut">Taglie esaurite</label>
+              <input type="text" id="fSoldOut" name="soldOutSizes" placeholder="es. XL">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fAlt">Descrizione immagine</label>
+              <input type="text" id="fAlt" name="alt" maxlength="160" placeholder="Per accessibilità e SEO">
+            </div>
+            <div class="field">
+              <label for="fOrder">Posizione</label>
+              <input type="number" id="fOrder" name="order" step="1" inputmode="numeric">
+            </div>
+          </div>
+        </details>
+
+        <p class="form-msg" id="formMsg" role="alert"></p>
+      </form>
+
+      <div class="drawer__foot">
+        <button type="button" class="btn btn--ghost" data-close-form>Annulla</button>
+        <button type="submit" form="productForm" class="btn btn--dark" id="saveBtn">Salva prodotto</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ============ CONFERMA ELIMINAZIONE ============ -->
+  <div class="confirm" id="confirmDialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText" hidden>
+    <div class="confirm__backdrop" data-cancel></div>
+    <div class="confirm__box">
+      <h2 class="confirm__title" id="confirmTitle">Eliminare il prodotto?</h2>
+      <p class="muted" id="confirmText"></p>
+      <div class="confirm__actions">
+        <button class="btn btn--ghost" data-cancel>Annulla</button>
+        <button class="btn btn--danger" id="confirmDelete">Elimina</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/products-data.js"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
